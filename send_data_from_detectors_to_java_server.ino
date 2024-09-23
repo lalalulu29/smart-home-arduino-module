@@ -16,13 +16,7 @@ const char index_html[] PROGMEM = R"rawliteral(
     <h3>Настройки модуля</h3>
     
     <form action="/updateSettings" method="POST">
-        <label for="wifiName">Наименование Wi-Fi:</label><br>
-        <input type="text" id="wifiName" name="wifiName" required><br><br>
-        
-        <label for="wifiPassword">Пароль от Wi-Fi:</label><br>
-        <input type="password" id="wifiPassword" name="wifiPassword" required><br><br>
-        
-        <button type="submit">Обновить настройки</button>
+      %FORMINITIALIZENPLACEHOLDER%
     </form>
 </body>
 </html>
@@ -67,7 +61,7 @@ void initialWifiMode() {
 void initialWebServerMode() {
   
   server.on("/", HTTP_GET, [] (AsyncWebServerRequest *request) {
-    request->send_P(200, "text/html", index_html);
+    request->send_P(200, "text/html", index_html, processor);
   });
 
   server.on("/updateSettings", HTTP_POST, [] (AsyncWebServerRequest *request) {
@@ -83,4 +77,28 @@ void initialWebServerMode() {
   });
 
   server.begin();
+}
+
+String processor(const String& var){
+  if(var == "FORMINITIALIZENPLACEHOLDER"){
+    String form = "";
+    form += "<label for=\"wifiName\">Наименование Wi-Fi:</label><br>";
+    form += "<input type=\"text\" id=\"wifiName\" name=\"wifiName\" required><br><br>";
+        
+    form += "<label for=\"wifiPassword\">Пароль от Wi-Fi:</label><br>";
+    form += "<input type=\"password\" id=\"wifiPassword\" name=\"wifiPassword\" required><br><br>";
+
+    form += "<label for=\"serverUrl\">URL сервера:</label><br>";
+    form += "<input type=\"text\" id=\"serverUrl\" name=\"serverUrl\" required><br><br>";
+
+    form += "<label for=\"serverKey\">Ключ сервера:</label><br>";
+    form += "<input type=\"password\" id=\"serverKey\" name=\"serverKey\" required><br><br>";
+
+    form += "<label for=\"updateTimer\">Частота отправки данных на сервер (сек):</label><br>";
+    form += "<input type=\"text\" id=\"updateTimer\" name=\"updateTimer\" required><br><br>";
+        
+    form += "<button type=\"submit\">Обновить настройки</button>";
+    return form;
+  }
+  return String();
 }
