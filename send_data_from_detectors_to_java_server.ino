@@ -3,6 +3,14 @@
 #include <Hash.h>
 #include <ESPAsyncTCP.h>
 #include <ESPAsyncWebServer.h>
+#include <EEPROM.h>
+
+
+String publicWifiLogin = "";
+String publicWifiPassword = "";
+String publicUrlServer = "";
+String publicServerKey = "";
+String publicUpdateTimer = "";
 
 const char index_html[] PROGMEM = R"rawliteral(
 <!DOCTYPE html>
@@ -29,6 +37,8 @@ AsyncWebServer server(8080);
 
 void setup() {
   Serial.begin(9600);
+  EEPROM.begin(512);
+
   pinMode(D0, INPUT);
 
   isInitialMode = digitalRead(D0);
@@ -38,6 +48,7 @@ void setup() {
     initialWebServerMode();
   }
 
+  initializePublicVariable();
 }
 
 void loop() {
@@ -65,14 +76,44 @@ void initialWebServerMode() {
   });
 
   server.on("/updateSettings", HTTP_POST, [] (AsyncWebServerRequest *request) {
-    AsyncWebParameter * j = request->getParam(0);
-    Serial.print("login: ");
-    Serial.println(j->value()); 
+    AsyncWebParameter *wifiLogin = request->getParam(0);
+    AsyncWebParameter *wifiPassword = request->getParam(1);
+    AsyncWebParameter *urlServer =  request->getParam(2);
+    AsyncWebParameter *serverKey =  request->getParam(3);
+    AsyncWebParameter *updateTimer =  request->getParam(4);
 
-    AsyncWebParameter * l = request->getParam(1);
-    Serial.print("Password: ");
-    Serial.println(l->value()); 
+    if(publicWifiLogin != wifiLogin ->value()) {
+      clearEeprom(0, 100);
+      publicWifiLogin = wifiLogin ->value();
+      writeStringToEEPROM(0, publicWifiLogin);
+    }
 
+    if(publicWifiPassword != wifiPassword ->value()) {
+      clearEeprom(100, 200);
+      publicWifiPassword = wifiPassword ->value();
+      writeStringToEEPROM(100, publicWifiPassword);
+    }
+
+    if(publicUrlServer != urlServer ->value()) {
+      clearEeprom(200, 300);
+      publicUrlServer = urlServer ->value();
+      writeStringToEEPROM(200, publicUrlServer);
+    }
+
+    if(publicServerKey != serverKey ->value()) {
+      clearEeprom(300, 400);
+      publicServerKey = serverKey ->value();
+      writeStringToEEPROM(300, publicServerKey);
+    }
+
+    if(publicUpdateTimer != updateTimer ->value()) {
+      clearEeprom(400, 500);
+      publicUpdateTimer = updateTimer ->value();
+      writeStringToEEPROM(400, publicUpdateTimer);
+    }
+
+
+    EEPROM.commit();
     request->send_P(200, "text/plain", "OK");
   });
 
@@ -83,22 +124,68 @@ String processor(const String& var){
   if(var == "FORMINITIALIZENPLACEHOLDER"){
     String form = "";
     form += "<label for=\"wifiName\">Наименование Wi-Fi:</label><br>";
-    form += "<input type=\"text\" id=\"wifiName\" name=\"wifiName\" required><br><br>";
+    form += "<input type=\"text\" id=\"wifiName\" name=\"wifiName\" value=\""+ publicWifiLogin +"\" required><br><br>";
         
     form += "<label for=\"wifiPassword\">Пароль от Wi-Fi:</label><br>";
-    form += "<input type=\"password\" id=\"wifiPassword\" name=\"wifiPassword\" required><br><br>";
+    form += "<input type=\"password\" id=\"wifiPassword\" name=\"wifiPassword\" value=\""+ publicWifiPassword +"\" required><br><br>";
 
     form += "<label for=\"serverUrl\">URL сервера:</label><br>";
-    form += "<input type=\"text\" id=\"serverUrl\" name=\"serverUrl\" required><br><br>";
+    form += "<input type=\"text\" id=\"serverUrl\" name=\"serverUrl\" value=\""+ publicUrlServer +"\" required><br><br>";
 
     form += "<label for=\"serverKey\">Ключ сервера:</label><br>";
-    form += "<input type=\"password\" id=\"serverKey\" name=\"serverKey\" required><br><br>";
+    form += "<input type=\"password\" id=\"serverKey\" name=\"serverKey\" value=\""+ publicServerKey +"\" required><br><br>";
 
     form += "<label for=\"updateTimer\">Частота отправки данных на сервер (сек):</label><br>";
-    form += "<input type=\"text\" id=\"updateTimer\" name=\"updateTimer\" required><br><br>";
+    form += "<input type=\"text\" id=\"updateTimer\" name=\"updateTimer\" value=\""+ publicUpdateTimer +"\" required><br><br>";
         
     form += "<button type=\"submit\">Обновить настройки</button>";
     return form;
   }
   return String();
+}
+
+void writeStringToEEPROM(int addrOffset, const String &str) {
+  for (int i = 0; i < str.length(); i++) {
+    EEPROM.write(addrOffset + i, str[i]);
+  }
+  EEPROM.write(addrOffset + str.length(), '\0');
+}
+
+String readStringFromEEPROM(int addrOffset) {
+  char data[100];
+  int len = 0;
+  unsigned char k;
+  while ((k = EEPROM.read(addrOffset + len)) != '\0' && len < sizeof(data) - 1) {
+    data[len++] = k;
+  }
+  data[len] = '\0'; 
+  return String(data);
+}
+
+void initializePublicVariable() {
+  if(publicWifiLogin == "") {
+    publicWifiLogin = readStringFromEEPROM(0);
+  }
+
+  if(publicWifiPassword == "") {
+    publicWifiPassword = readStringFromEEPROM(100);
+  }
+
+  if(publicUrlServer == "") {
+    publicUrlServer = readStringFromEEPROM(200);
+  }
+
+  if(publicServerKey == "") {
+    publicServerKey = readStringFromEEPROM(300);
+  }
+
+  if(publicUpdateTimer == "") {
+    publicUpdateTimer = readStringFromEEPROM(400);
+  }
+}
+
+void clearEeprom(int from, int to) {
+  for (int i = from; i < to; i++) {
+    EEPROM.write(i, 0);
+  }
 }
