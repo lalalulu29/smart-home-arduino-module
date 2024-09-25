@@ -38,6 +38,7 @@ AsyncWebServer server(8080);
 void setup() {
   Serial.begin(9600);
   EEPROM.begin(512);
+  initializePublicVariable();
 
   pinMode(D0, INPUT);
 
@@ -48,7 +49,7 @@ void setup() {
     initialWebServerMode();
   }
 
-  initializePublicVariable();
+  
 }
 
 void loop() {
@@ -124,19 +125,19 @@ String processor(const String& var){
   if(var == "FORMINITIALIZENPLACEHOLDER"){
     String form = "";
     form += "<label for=\"wifiName\">Наименование Wi-Fi:</label><br>";
-    form += "<input type=\"text\" id=\"wifiName\" name=\"wifiName\" value=\""+ publicWifiLogin +"\" required><br><br>";
+    form += "<input type=\"text\" id=\"wifiName\" name=\"wifiName\" maxlength=\"50\" value=\""+ publicWifiLogin +"\" required><br><br>";
         
     form += "<label for=\"wifiPassword\">Пароль от Wi-Fi:</label><br>";
-    form += "<input type=\"password\" id=\"wifiPassword\" name=\"wifiPassword\" value=\""+ publicWifiPassword +"\" required><br><br>";
+    form += "<input type=\"password\" id=\"wifiPassword\" name=\"wifiPassword\" maxlength=\"50\" value=\""+ publicWifiPassword +"\" required><br><br>";
 
     form += "<label for=\"serverUrl\">URL сервера:</label><br>";
-    form += "<input type=\"text\" id=\"serverUrl\" name=\"serverUrl\" value=\""+ publicUrlServer +"\" required><br><br>";
+    form += "<input type=\"text\" id=\"serverUrl\" name=\"serverUrl\" maxlength=\"50\" value=\""+ publicUrlServer +"\" required><br><br>";
 
     form += "<label for=\"serverKey\">Ключ сервера:</label><br>";
-    form += "<input type=\"password\" id=\"serverKey\" name=\"serverKey\" value=\""+ publicServerKey +"\" required><br><br>";
+    form += "<input type=\"password\" id=\"serverKey\" name=\"serverKey\" maxlength=\"50\" value=\""+ publicServerKey +"\" required><br><br>";
 
     form += "<label for=\"updateTimer\">Частота отправки данных на сервер (сек):</label><br>";
-    form += "<input type=\"text\" id=\"updateTimer\" name=\"updateTimer\" value=\""+ publicUpdateTimer +"\" required><br><br>";
+    form += "<input type=\"text\" id=\"updateTimer\" name=\"updateTimer\" maxlength=\"50\" value=\""+ publicUpdateTimer +"\" required><br><br>";
         
     form += "<button type=\"submit\">Обновить настройки</button>";
     return form;
@@ -158,7 +159,7 @@ String readStringFromEEPROM(int addrOffset) {
   while ((k = EEPROM.read(addrOffset + len)) != '\0' && len < sizeof(data) - 1) {
     data[len++] = k;
   }
-  data[len] = '\0'; 
+  data[len] = '\0';
   return String(data);
 }
 
