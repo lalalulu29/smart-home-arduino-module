@@ -3,7 +3,20 @@
 #include <Hash.h>
 #include <ESPAsyncTCP.h>
 #include <ESPAsyncWebServer.h>
+#include <ESP8266HTTPClient.h>
 #include <EEPROM.h>
+
+#include <Wire.h>
+#include <SPI.h>
+#include <Adafruit_Sensor.h>
+#include <Adafruit_BME280.h>
+
+#define BME_SCK 13
+#define BME_MISO 12
+#define BME_MOSI 11
+#define BME_CS 10
+
+#define SEALEVELPRESSURE_HPA (1013.25)
 
 
 String publicWifiLogin = "";
@@ -11,6 +24,8 @@ String publicWifiPassword = "";
 String publicUrlServer = "";
 String publicServerKey = "";
 String publicUpdateTimer = "";
+
+Adafruit_BME280 bme;
 
 const char index_html[] PROGMEM = R"rawliteral(
 <!DOCTYPE html>
@@ -35,9 +50,11 @@ bool isInitialMode = false;
 
 AsyncWebServer server(8080);
 
+
 void setup() {
   Serial.begin(9600);
   EEPROM.begin(512);
+  delay(100);
   initializePublicVariable();
 
   pinMode(D0, INPUT);
@@ -54,8 +71,30 @@ void setup() {
   
 }
 
-void loop() {
+unsigned long lastTime = 0;
 
+void loop() {
+  if (!isInitialMode && (millis() - lastTime) > publicUpdateTimer.toInt() * 1000) {
+    if (WiFi.status()== WL_CONNECTED) {
+      WiFiClient client;
+      HTTPClient http;
+
+      http.begin(client, "http://" + publicUrlServer + "/sendData");
+
+      http.addHeader("Content-Type", "application/json");
+      String request = "{ \"temperature\": " + String(bme.readTemperature()) +
+                       ", \"pressure\": " + String((bme.readPressure() / 100.0F)) +
+                       ", \"altitude\": " + String(bme.readAltitude(SEALEVELPRESSURE_HPA)) + 
+                       ", \"humidity\": " + String(bme.readHumidity()) + 
+                       "}";
+      int httpResponseCode = http.POST(request);
+
+
+      http.end();
+    }
+
+  lastTime = millis();
+  }
 }
 
 void initialMainMode() {
@@ -63,11 +102,12 @@ void initialMainMode() {
     WiFi.begin(publicWifiLogin, publicWifiPassword);
     while (WiFi.status() != WL_CONNECTED) { 
       //Тут нужна какая то логика ожидания подкюлчения к ви фи
+      delay(100);
     }
-
+    bme.begin(0x76);
   }
-  
 }
+
 
 void initialWifiMode() {
   
@@ -80,7 +120,6 @@ void initialWifiMode() {
 
   WiFi.softAPConfig(local_IP, gateway, subnet);
   WiFi.softAP(ssid, password);
-  Serial.println(WiFi.softAPIP());
 }
 
 void initialWebServerMode() {
