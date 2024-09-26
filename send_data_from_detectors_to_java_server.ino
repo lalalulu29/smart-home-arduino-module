@@ -47,6 +47,8 @@ void setup() {
   if (isInitialMode) {
     initialWifiMode();
     initialWebServerMode();
+  } else {
+    initialMainMode();
   }
 
   
@@ -54,6 +56,17 @@ void setup() {
 
 void loop() {
 
+}
+
+void initialMainMode() {
+  if (publicWifiLogin != "" && publicWifiPassword != "") {
+    WiFi.begin(publicWifiLogin, publicWifiPassword);
+    while (WiFi.status() != WL_CONNECTED) { 
+      //Тут нужна какая то логика ожидания подкюлчения к ви фи
+    }
+
+  }
+  
 }
 
 void initialWifiMode() {
